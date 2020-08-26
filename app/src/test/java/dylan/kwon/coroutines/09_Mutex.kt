@@ -17,14 +17,11 @@ class `09_Mutex` {
     private val mutex: Mutex by lazy { Mutex() }
 
     @Test
-    fun main() {
-        runBlocking {
-            work {
-                mutex.withLock { count++ }
-            }
-            println("count: $count")
+    fun main() = runBlocking {
+        work {
+            mutex.withLock { count++ }
         }
-        println("end.")
+        println("count: $count")
     }
 
     private suspend fun work(action: suspend () -> Unit) = withContext(Dispatchers.IO) {

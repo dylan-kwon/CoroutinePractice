@@ -2,9 +2,22 @@
 2. 부모 코루틴은 모든 자식 코루틴이 종료된 후 종료된다.
 3. 스코프 빌더는 내부의 모든 코루틴이 종료될 때 까지 대기한다.
 4. 코루틴 예외는 전파와 노출로 나뉜다.
-    전파: launch, actor  -> 예외가 발생한 즉시 발생.
+    전파: launch, actor  -> 예외가 발생한 즉시 발생하며, 부모 코루틴으로 예외가 전파되어 최종적으로 최상위 부모 코루틴을 감싼 `try-catch`에서 처리 가능하다.
     노출: async, produce -> `.await()`이나 `.receive()` 메소드를 호출할 때 예외가 발생한다.
 5. 코루틴 익셉션 핸들러는 전파인 경우에만 처리 가능하다.
 6. 코루틴 `job.cancel()`은 부모를 취소하지 않는다.
-7. 코루틴에서 예외가 발생한 경우 부모 코루틴도 취소된다. 또한 모든 자식 코루틴이 모두 종료된 후 부모 코루틴에 의해 예외가 처리된다.
-8. (7)에 의한 부모 코루틴 종료를 원하지 않는다면 `SupervisorJob`을 사용하여 자식 코루틴만 종료시킬 수 있다.
+7. 코루틴에서 예외가 발생한 경우 자식 코루틴부터 부모 코루틴까지 순차적으로 취소된다. 또한 모든 자식 코루틴이 모두 종료된 후 최상위 부모 코루틴에 의해 예외가 처리된다.
+   - 따라서 자식 코루틴에 exception handler를 추가해도 동작하지 않는다.
+   - 코루틴 스코프는 `launch`와 다르게 `exception`을 전파하지 않는다. 따라서 스코프를 `try-catch`로 감싸면 예외를 처리할 수 있다.
+       - `try-catch`가 동작하는 곳: (parent) -> launch -> (withContext) -> launch -> (withContext) -> launch -> (exception)
+   - `exception handler`는 스코프 빌더를 만나도 더 상위의 코루틴이 있는 경우 부모의 코루틴 빌더에 핸들러를 등록해야 한다.
+       - `exception handler`가 동작하는 곳: (launch) -> withContext -> launch -> withContext -> launch -> exception
+8. (7)에 의한 부모 코루틴 종료를 원하지 않는다면 `SupervisorJob` 또는 `supervisorScope`를 사용하여 자식 코루틴만 종료시킬 수 있다. (형제격 코루틴은 영향 x)
+9. `Dispatchers.Default`는 모든 표준 빌더에서 사용하는 기본 스레드를 사용한다.
+10.`Dispatchers.Unconfined`는 기본적으로 부모의 스레드를 사용하지만, 중단함수를 만난 이후 다시 재개한 스레드를 사용.
+11. `Select`는 여러 중단 함수를 동시에 대기하고 사용 가능한 상태인 경우에 선택이 가능하도록 한다.
+    - 예를들어 여러 채널의 값을 동시에 뽑아내야 한다면 `receive()`만으로는 힘들다. 왜냐하면 send와 receive는 pair이기 때문이다.
+12. 모든 코루틴은 `finally`블록을 실행 후 종료된다. (catch 구문 없이 예외가 발생한 상황에서도 마찬가지다.)
+13.`Flow`는 `Cold Stream`이다. `collect()`를 호출하면 아이템을 발행한다. 새로운 객체를 만들지 않아도 `collect()`를 재호출하여 재사용 가능하다. `Rx`같이 `Hot Stream`은 지원하지 않는다.
+14.`Flow`는 `cancel`을 지원하지 않는다. 따라서 `launch` 등을 사용해야 하는데, 취소 동작 자체는 `launch`, `async` 등과 같다.
+15.'Flow'는 `emit`하는 스레드와 `collect`하는 `Context`가 동일해야 한다. 따라서 `flow { ... }` 블록 내부에서 `withContext(...)` 와 같은 컨텍스트 변경이 불가능하다.

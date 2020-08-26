@@ -1,42 +1,43 @@
 package dylan.kwon.coroutines
 
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.channels.produce
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.selects.select
 import org.junit.Test
 
-@Suppress("ClassName")
+@InternalCoroutinesApi
 @ExperimentalCoroutinesApi
+@Suppress("ClassName")
 class `08_Select` {
 
     @Test
-    fun main() {
-        runBlocking {
-            val fizz = createProduce(300, "Fizz")
-            val buzz = createProduce(500, "Buzz")
-
-            repeat(7) {
-                selectProduces(fizz, buzz)
-            }
-            coroutineContext.cancelChildren()
-        }
-        println("end.")
-    }
-
-    private fun CoroutineScope.createProduce(delay: Long, data: String) = produce {
-        delay(delay)
-        send(data)
-    }
-
-    private suspend fun selectProduces(vararg produces: ReceiveChannel<String>) {
-        select<Unit> {
-            for (produce in produces) {
-                produce.onReceive {
-                    println("receive: $it")
-                }
+    fun main() = runBlocking {
+        val channel1 = produce {
+            for (i in 0 until 7) {
+                delay(1000)
+                send("channel1")
             }
         }
+        val channel2 = produce {
+            for (i in 0 until 5) {
+                delay(2000)
+                send("channel2")
+            }
+        }
+        while (true) select<String?> {
+            channel1.onReceiveOrClosed {
+                if (it.isClosed) null else it.valueOrNull
+            }
+            channel2.onReceiveOrClosed {
+                if (it.isClosed) null else it.valueOrNull
+            }
+        }?.let {
+            println(it)
+        }
     }
+
 
 }

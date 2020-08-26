@@ -13,13 +13,10 @@ import org.junit.Test
 class `05_Produce` {
 
     @Test
-    fun main() {
-        runBlocking {
-            createProduce().consumeEach {
-                println("receive: $it")
-            }
+    fun main() = runBlocking {
+        createProduce().consumeEach {
+            println("receive: $it")
         }
-        println("end.")
     }
 
     private fun CoroutineScope.createProduce() = produce {

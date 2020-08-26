@@ -15,21 +15,19 @@ class `04_Channel` {
     }
 
     @Test
-    fun main() {
-        runBlocking {
-            launch(Dispatchers.IO) {
-                repeat(5) {
-                    delay(1000)
-                    println("send: $it")
-                    channel.send(it)
-                }
-                channel.close()
+    fun main() = runBlocking {
+        launch(Dispatchers.IO) {
+            repeat(5) {
+                delay(1000)
+                println("send: $it")
+                channel.send(it)
             }
-            for (i in channel) {
-                println("receive: $i")
-            }
+            channel.close()
         }
-        println("end.")
+        for (i in channel) {
+            println("receive: $i")
+        }
     }
+
 
 }

@@ -48,7 +48,7 @@ class `99_ExecutorService` {
         for (i in 0 until 100) {
             executor.execute {
                 Thread.sleep(2000)
-                printCurrentThread("WorkSteal($i)")
+                printCurrentThread("executor($i)")
             }
             Thread.sleep(100)
         }

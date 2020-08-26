@@ -3,9 +3,6 @@ package dylan.kwon.coroutines
 import kotlinx.coroutines.*
 import org.junit.Test
 
-/**
- * Unconfined: 기본적으로 부모의 스레드를 사용하지만, 중단함수를 만난 이후 다시 재개한 스레드를 사용.
- */
 @Suppress("ClassName")
 class `07_Exception` {
 
@@ -14,29 +11,20 @@ class `07_Exception` {
     }
 
     @Test
-    fun main() {
-        runBlocking {
-            launch()
-            async()
-            exceptCancel()
-        }
-        println("end.")
-        println()
-    }
-
-    private suspend fun launch() {
+    fun launch() = runBlocking {
         GlobalScope.launch(exceptionHandler) {
             println("start launch.")
-            throw NullPointerException() // Will be printed to the console by Thread.defaultUncaughtExceptionHandler
+            throw NullPointerException()
         }.join()
         println("end launch")
         println()
     }
 
-    private suspend fun async() {
+    @Test
+    fun async() = runBlocking {
         val deferred = GlobalScope.async(exceptionHandler) {
             println("start async.")
-            throw ArithmeticException() // Nothing is printed, relying on user to call await
+            throw ArithmeticException()
         }
         try {
             deferred.await()
@@ -48,27 +36,74 @@ class `07_Exception` {
         println()
     }
 
-    private suspend fun exceptCancel() {
-        coroutineScope {
-            try {
-                launch {
-                    try {
-                        println("Child is sleeping")
-                        delay(Long.MAX_VALUE)
-                    } finally {
-                        println("Child is cancelled")
-                    }
+    @Test
+    fun exceptCancel() = runBlocking {
+        withContext(Dispatchers.IO) {
+            launch {
+                try {
+                    println("Child is sleeping")
+                    delay(5000)
+                    println("Child is end")
+                } finally {
+                    println("Child is cancelled")
                 }
-                launch {
-                    println("Throwing exception from scope")
-                    throw AssertionError()
-                }
-
-            } catch (e: AssertionError) {
-                println("Caught assertion error")
             }
+            launch(SupervisorJob()) {
+                println("Throwing exception from scope")
+                throw Exception()
+            }
+
         }
         println("exceptCancel end.")
+        println()
+    }
+
+    @Test
+    fun exceptTryCatch() = runBlocking {
+        println("exceptTryCatch start.")
+        val handler = CoroutineExceptionHandler { _, _ ->
+            println("catch1!!!!!")
+        }
+        try {
+            withContext(Dispatchers.IO) {
+                try {
+                    launch {
+                        try {
+                            launch {
+                                try {
+                                    launch {
+                                        try {
+                                            launch {
+//                                                try {
+                                                throw Exception("throw except!!")
+//                                                } catch (e: Exception) {
+//                                                    println("catch2!!!!!")
+//                                                } finally {
+//                                                    println("finally6")
+//                                                }
+                                            }
+                                        } finally {
+                                            println("finally5")
+                                        }
+                                    }
+                                } finally {
+                                    println("finally4")
+                                }
+                            }
+                        } finally {
+                            println("finally3")
+                        }
+                    }
+                } finally {
+                    println("finally2")
+                }
+            }
+        } catch (e: Exception) {
+            println("catch3!!!!!")
+        } finally {
+            println("finally1")
+        }
+        println("exceptTryCatch end.")
         println()
     }
 }
