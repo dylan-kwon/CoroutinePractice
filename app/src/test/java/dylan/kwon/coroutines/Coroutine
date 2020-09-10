@@ -21,3 +21,5 @@
 13.`Flow`는 `Cold Stream`이다. `collect()`를 호출하면 아이템을 발행한다. 새로운 객체를 만들지 않아도 `collect()`를 재호출하여 재사용 가능하다. `Rx`같이 `Hot Stream`은 지원하지 않는다.
 14.`Flow`는 `cancel`을 지원하지 않는다. 따라서 `launch` 등을 사용해야 하는데, 취소 동작 자체는 `launch`, `async` 등과 같다.
 15.'Flow'는 `emit`하는 스레드와 `collect`하는 `Context`가 동일해야 한다. 따라서 `flow { ... }` 블록 내부에서 `withContext(...)` 와 같은 컨텍스트 변경이 불가능하다.
+16. `ChannelFlow`와 `CallbackFlow`는 이름만 다를 뿐 서로 동일한 기능을 수행한다.
+    `flow { .. }` 블록 내부에서 어떠한 콜백 메소드의 내부에서 `emit`하는 경우 그 콜백이 `suspend` 메소드가 아니라면 호출이 불가능하다.
