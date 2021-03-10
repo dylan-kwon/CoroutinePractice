@@ -43,6 +43,27 @@ class `11_Flow` {
     }
 
     @Test
+    fun test() = runBlocking {
+
+            val job = flow {
+                emit(1)
+                delay(3000)
+                emit(2)
+                delay(3000)
+                emit(3)
+                throw NullPointerException("zzzz")
+            }.onEach {
+                println(it)
+            }.onCompletion {
+                println(it?.message)
+            }.launchIn(this)
+
+            delay(4000)
+            job.cancelAndJoin()
+
+    }
+
+    @Test
     fun cancel() = runBlocking {
         launch {
             flow {
@@ -100,7 +121,7 @@ class `11_Flow` {
     fun buffer() = runBlocking {
         measureTimeMillis {
             flow {
-                repeat(3) {
+                repeat(10) {
                     delay(100)
                     println("emit: $it")
                     emit(it)
@@ -239,13 +260,13 @@ class `11_Flow` {
     fun flatMapMerge() = runBlocking {
         flow {
             repeat(5) {
-                delay(300)
+                delay(3000)
                 println("emit: $it")
                 emit(it)
             }
         }.flatMapMerge {
             flow {
-                delay(500)
+                delay(5000)
                 emit(it)
                 emit(it + 1)
             }
@@ -280,6 +301,7 @@ class `11_Flow` {
             .onEach { if (it >= 5) throw NullPointerException("Exception!!") }
             .catch {
                 println(it.message)
+                emit(-1)
             }
             .collect {
                 println("collect: $it")
